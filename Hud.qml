@@ -228,8 +228,9 @@ Item {
   // ToplevelManager.activeToplevel.fullscreen still read false and only caught
   // up afterwards.
   function _cornerBlocked() {
-    var ws = Hyprland.focusedWorkspace
-    return !!(ws && ws.hasFullscreen)
+ //   var ws = Hyprland.focusedWorkspace
+ // return !!(ws && ws.hasFullscreen)
+ 	return true
   }
 
   // Must match manifest.json's `id`. The fallback is only reached if the panel
@@ -355,8 +356,18 @@ Item {
           "hl.dsp.focus({ workspace = \"" + sel.wsId + "\" })"]
         focusProc.running = true
       } else if (sel.address) {
-        focusProc.command = ["hyprctl", "dispatch",
-          "hl.dsp.focus({ window = \"address:" + sel.address + "\" })"]
+        // Focus AND raise. Hyprland's focus dispatcher moves keyboard focus
+        // only -- it never touches the z-order (Actions::focus ->
+        // rawWindowFocus -> LayoutManager::bringTargetToTop, which just
+        // reorders a group). Floating windows are drawn in plain window-list
+        // order, so focusing one leaves it buried. Raising is what a mouse
+        // click does (InputManager calls windowState()->raise on press), and
+        // it is reachable from a bind as alter_zorder -- but a keyboard switch
+        // has to ask for it explicitly. One process, two dispatchers, so the
+        // raise cannot run ahead of the focus it depends on.
+        focusProc.command = ["hyprctl", "--batch",
+          "dispatch hl.dsp.focus({ window = \"address:" + sel.address + "\" });"
+          + "dispatch hl.dsp.window.alter_zorder({ mode = \"top\", window = \"address:" + sel.address + "\" })"]
         focusProc.running = true
       }
     }
